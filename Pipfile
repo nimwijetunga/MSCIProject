@@ -6,7 +6,26 @@ verify_ssl = true
 [dev-packages]
 
 [packages]
-yfinance = "*"
+gunicorn="*"
+icertifi="*"
+chardet="*"
+Click="*"
+Flask="*"
+idna="*"
+itsdangerous="*"
+Jinja2="*"
+MarkupSafe="*"
+multitasking="*"
+numpy="*"
+pandas="*"
+python-dateutil="*"
+pytz="*"
+requests="*"
+scipy="*"
+six="*"
+urllib3="*"
+Werkzeug="*"
+yfinance="*"
 
 [requires]
 python_version = "2.7"
