@@ -54,24 +54,75 @@ def sharpeRatio(wA, wB, rA, rB, rf, vA, vB, cov):
 	std = portStd(wA, wB, vA, vB, cov)
 	return (mean - rf)/std
 
+def case2(pr, rf):
+	return 0.5*pr + 0.5*rf
+
+def case3(pr, rf):
+	return -0.5*rf + 1.5*pr
+
+def stdevWithRiskFree(rf,rp,rm,stdm):
+	return (rp-rf)*stdm/(rm-rf)
+
+def getCasesData(first_stock, second_stock, risk_free_rate):
+	returns, covar = getStockInfo(args.first_stock, args.second_stock)
+	wA, wB, mean, stdev = getMinVarPortfolio(returns, covar)
+	marketA, marketB = getMarketPorfolioProportions(returns, covar, risk_free_rate)
+	sr = sharpeRatio(marketA,marketB,returns[0], returns[1], risk_free_rate, covar[0,0], covar[1,1], covar[0,1])
+	marketPortfolioReturn = portMean(marketA, marketB, returns[0], returns[1])
+	marketPortfolioStdev = portStd(marketA, marketB, covar[0,0], covar[1,1], covar[0,1])
+	case2_returns = case2(marketPortfolioReturn, risk_free_rate)
+	case3_returns = case3(marketPortfolioReturn, risk_free_rate)
+	return {
+		'fs_name': first_stock,
+		'ss_name': second_stock,
+		'mvp':{
+			'fs': round(wA * 100,2),
+			'ss': round(wB * 100, 2),
+			'stdev': round(stdev*100, 2),
+			'mean': round(mean*100, 2)
+		},
+		'case1':{
+			'sharpe': round(sr,2),
+			'fs':round(marketA * 100,2),
+			'ss':round(marketB * 100,2),
+			'stdev':round(marketPortfolioStdev*100, 2),
+			'mean': round(marketPortfolioReturn*100, 2)
+		},
+		'case2':{
+			'mean': round(case2_returns*100,2),
+			'stdev': round(stdevWithRiskFree(risk_free_rate, case2_returns, marketPortfolioReturn, marketPortfolioStdev)*100,2)
+		},
+		'case3':{
+			'mean':round(case3_returns*100,2),
+			'stdev':round(stdevWithRiskFree(risk_free_rate, case3_returns, marketPortfolioReturn, marketPortfolioStdev)*100,2)
+		}
+	}
+
+
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
 	parser.add_argument("first_stock")
 	parser.add_argument("second_stock")
 	parser.add_argument("risk_free_rate")
 	args = parser.parse_args()
-	returns, covar = getStockInfo(args.first_stock, args.second_stock)
-	wA, wB, mean, stdev = getMinVarPortfolio(returns, covar)
-	print('MVP Proportion of %s: %s %%' % (args.first_stock, round(wA * 100,2)))
-	print('MVP Proportion of %s: %s %%' % (args.second_stock, round(wB * 100, 2)))
-	print('MVP standard deviation: %s %%' % (round(stdev*100, 2)))
-	print('MVP Expected Portfolio Return: %s %%' % (round(mean*100, 2)))
-	print('\n\n\n\n')
-	risk_free_rate = float(args.risk_free_rate)
-	marketA, marketB = getMarketPorfolioProportions(returns, covar, risk_free_rate)
-	sharpeRatio = sharpeRatio(marketA,marketB,returns[0], returns[1], risk_free_rate, covar[0,0], covar[1,1], covar[0,1])
-	print('Maximium Sharpe Ratio %s' % (round(sharpeRatio,2)))
-	print('Market Portfolio Proportion of %s: %s %%' % (args.first_stock, round(marketA * 100,2)))
-	print('Market Portfolio Proportion of %s: %s %%' % (args.second_stock, round(marketB * 100, 2)))
-	print('Market Portfolio standard deviation: %s %%' % (round(portStd(marketA, marketB, covar[0,0], covar[1,1], covar[0,1])*100, 2)))
-	print('Market Portfolio Expected Portfolio Return: %s %%' % (round(portMean(marketA, marketB, returns[0], returns[1])*100, 2)))
+	data = getCasesData(args.first_stock, args.second_stock, float(args.risk_free_rate))
+	print('\n')
+	print('MVP Proportion of %s: %s %%' % (data['fs_name'], data['mvp']['fs']))
+	print('MVP Proportion of %s: %s %%' % (data['ss_name'], data['mvp']['ss']))
+	print('MVP standard deviation: %s %%' % (data['mvp']['stdev']))
+	print('MVP Expected Portfolio Return: %s %%' % (data['mvp']['mean']))
+	print('\n')
+	print('Invest 100% in market portoflio and 0% in risk free asset: \n')
+	print('Maximium Sharpe Ratio %s' % (data['case1']['sharpe']))
+	print('Market Portfolio Proportion of %s: %s %%' % (data['fs_name'], data['case1']['fs']))
+	print('Market Portfolio Proportion of %s: %s %%' % (data['ss_name'], data['case1']['ss']))
+	print('Market Portfolio standard deviation: %s %%' % (data['case1']['stdev']))
+	print('Market Portfolio Expected Portfolio Return: %s %%' % (data['case1']['mean']))
+	print('\n')
+	print('Invest 50% in market portoflio and 50% in risk free asset: \n')
+	print('Portfolio standard deviation: %s %%' % (data['case2']['stdev']))
+	print('Expected Portfolio Return: %s %%' % (data['case2']['mean']))
+	print('\n')
+	print('Invest 150% in market portoflio and -50% in risk free asset: \n')
+	print('Portfolio standard deviation: %s %%' % (data['case3']['stdev']))
+	print('Expected Portfolio Return: %s %%' % (data['case3']['mean']))

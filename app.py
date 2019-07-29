@@ -1,6 +1,6 @@
 from flask import Flask, request
 from flask import jsonify, render_template
-from stocks import getMinVarPortfolio
+import stocks
 
 app = Flask(__name__)
 
@@ -15,7 +15,6 @@ def stock_returns():
 	second_stock = body['stock2']
 	rf = float(body['riskFreeRate'])
 	try:
-		wA, wB, mean, stdev = getMinVarPortfolio(first_stock, second_stock, rf)
-		return(jsonify({'wA': wA, 'wB': wB, 'mean': mean, 'stdev': stdev, 'msg': 'success'}))
+		return(jsonify(stocks.getCasesData(first_stock, second_stock, rf)))
 	except:
 		return(jsonify({'msg': 'error'})), 401
