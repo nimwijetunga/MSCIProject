@@ -10,16 +10,17 @@ def getStockInfo(first_stock, second_stock):
 	ss = yf.Ticker(second_stock)
 	if not fs or not ss:
 		return None
-	fs_history = fs.history(start="2018-06-01", end="2019-06-01")
-	ss_history = ss.history(start="2018-06-01", end="2019-06-01")
+	fs_history = fs.history(start="2018-06-01", end="2019-06-30", interval = "1mo")
+	ss_history = ss.history(start="2018-06-01", end="2019-06-30", interval = "1mo")
 	fs_history = fs_history.rename(columns={'Close':'fs_close'})
 	ss_history = ss_history.rename(columns={'Close':'ss_close'})
 	history = pd.concat([fs_history, ss_history], axis=1)
 	returns = history[['fs_close','ss_close']]
 	returns_daily  = returns.pct_change()
-	returns_annual = (1+returns_daily.mean())**365-1
+	returns_daily = returns_daily.loc[(returns_daily!=0).any(axis=1)]
+	returns_annual = (1+returns_daily.mean())**12-1
 	cov_daily = returns_daily.cov()
-	cov_annual = cov_daily * 365
+	cov_annual = cov_daily * 12
 	returns = np.array(returns_annual)
 	covar = np.array(cov_annual)
 	return returns, covar
