@@ -3,6 +3,8 @@ import pandas as pd
 from scipy.optimize import minimize
 import numpy as np 
 import argparse
+import matplotlib.pyplot as plt
+
 
 
 def getStockInfo(first_stock, second_stock):
@@ -24,6 +26,16 @@ def getStockInfo(first_stock, second_stock):
 	returns = np.array(returns_annual)
 	covar = np.array(cov_annual)
 	return returns, covar
+
+def getEfficentFrontierData(returns, covar):
+	weights_0 = np.array(list(range(0,11)))/10.0
+	weights_1 = 1 - weights_0 
+	weights   = np.array([weights_0,weights_1]).T
+	port_returns = [w[0] * returns[0] + w[1] * returns[1] for w in weights]
+	port_sds    = [np.sqrt(w[0]**2*covar[0,0] + w[1]**2*covar[1,1] + 2*w[0]*w[1]*covar[0,1]) for w in weights]
+	df = pd.DataFrame([port_returns,port_sds]).transpose()
+	df.columns=['Returns', 'Volatility']
+	return df
 
 def portMean(wA, wB, rA, rB):
 	return wA * rA + wB * rB
@@ -65,7 +77,7 @@ def stdevWithRiskFree(rf,rp,rm,stdm):
 	return (rp-rf)*stdm/(rm-rf)
 
 def getCasesData(first_stock, second_stock, risk_free_rate):
-	returns, covar = getStockInfo(args.first_stock, args.second_stock)
+	returns, covar = getStockInfo(first_stock, second_stock)
 	wA, wB, mean, stdev = getMinVarPortfolio(returns, covar)
 	marketA, marketB = getMarketPorfolioProportions(returns, covar, risk_free_rate)
 	sr = sharpeRatio(marketA,marketB,returns[0], returns[1], risk_free_rate, covar[0,0], covar[1,1], covar[0,1])
@@ -73,6 +85,7 @@ def getCasesData(first_stock, second_stock, risk_free_rate):
 	marketPortfolioStdev = portStd(marketA, marketB, covar[0,0], covar[1,1], covar[0,1])
 	case2_returns = case2(marketPortfolioReturn, risk_free_rate)
 	case3_returns = case3(marketPortfolioReturn, risk_free_rate)
+	frontier_data = getEfficentFrontierData(returns, covar)
 	return {
 		'fs_name': first_stock,
 		'ss_name': second_stock,
@@ -97,16 +110,15 @@ def getCasesData(first_stock, second_stock, risk_free_rate):
 			'mean':round(case3_returns*100,2),
 			'stdev':round(stdevWithRiskFree(risk_free_rate, case3_returns, marketPortfolioReturn, marketPortfolioStdev)*100,2)
 		}
-	}
+	}, frontier_data
 
 
 if __name__ == '__main__':
 	parser = argparse.ArgumentParser()
-	parser.add_argument("first_stock")
-	parser.add_argument("second_stock")
-	parser.add_argument("risk_free_rate")
-	args = parser.parse_args()
-	data = getCasesData(args.first_stock, args.second_stock, float(args.risk_free_rate))
+	first_stock = raw_input("Enter first stock (e.g GOOGL): ") 
+	second_stock = raw_input("Enter second stock (e.g GOOGL): ") 
+	risk_free_rate = raw_input("Enter risk free rate (eg. 2 = 2%): ") 
+	data, frontier_data = getCasesData(first_stock, second_stock, float(risk_free_rate)/100.0)
 	print('\n')
 	print('MVP Proportion of %s: %s %%' % (data['fs_name'], data['mvp']['fs']))
 	print('MVP Proportion of %s: %s %%' % (data['ss_name'], data['mvp']['ss']))
@@ -127,3 +139,11 @@ if __name__ == '__main__':
 	print('Invest 150% in market portoflio and -50% in risk free asset: \n')
 	print('Portfolio standard deviation: %s %%' % (data['case3']['stdev']))
 	print('Expected Portfolio Return: %s %%' % (data['case3']['mean']))
+	print('\n Efficent Frontier: \n')
+	plt.style.use('seaborn-dark')
+	frontier_data.plot.scatter(x='Volatility', y='Returns',
+	                edgecolors='black', figsize=(10, 8), grid=True)
+	plt.xlabel('Volatility (Std. Deviation)')
+	plt.ylabel('Expected Returns')
+	plt.title('Efficient Frontier')
+	plt.show()
