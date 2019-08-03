@@ -1,9 +1,16 @@
 # MSCI 261 Final Project - Portfolio Statistics
 
-### Prerequisites
+### Prerequisites (For python <= 2.7)
 
 ```
 pip install -r requirments.txt
+```
+
+### Prerequisites (Using Pipenv)
+
+```
+pipenv install --dev
+pipenv shell
 ```
 
 ### Installing/Running
